@@ -1,0 +1,7 @@
+aiohttp
+async-timeout
+multidict
+certifi
+pyyaml
+aioredis
+asyncio

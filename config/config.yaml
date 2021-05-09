@@ -1,0 +1,24 @@
+
+app:
+  name: auth-api
+
+languageSystem:
+  modelName: model1
+
+voiceSystem:
+  modelName: model1
+
+inputData:
+  staticDir: /none
+  dinamicDir: 'C:/Users/super/PycharmProjects/auth_api/data/load_data'
+
+inventory:
+  dir: 'C:/Users/super/PycharmProjects/auth_api/data/users_data'
+  voiceDirName: voice
+  pswdDirName: pswd
+
+#N: 1
+
+#redis:
+#  address: redis://localhost:6379
+#  db: 2
