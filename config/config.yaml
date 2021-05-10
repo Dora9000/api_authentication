@@ -1,6 +1,7 @@
 
 app:
   name: auth-api
+  test: true
 
 languageSystem:
   modelName: model1

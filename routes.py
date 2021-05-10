@@ -8,7 +8,7 @@ def setup_routes(app):
                          create_user,
                          name='create_user')
 
-    app.router.add_route('GET',
+    app.router.add_route('POST',
                          r'/delete_user/{id:\d+}',
                          delete_user,
                          name='delete_user')
@@ -34,19 +34,3 @@ def setup_routes(app):
                          '/info',
                          info,
                          name='info')
-"""
-    app.router.add_route('GET',
-                         r'/notes/{id:\d+}',
-                         notes_get_id,
-                         name='notes_get_id')
-
-    app.router.add_route('DELETE',
-                         r'/notes/{id:\d+}',
-                         notes_delete,
-                         name='notes_delete')
-
-    app.router.add_route('PUT',
-                         r'/notes/{id:\d+}',
-                         notes_put_id,
-                         name='notes_put_id')
-"""

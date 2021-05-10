@@ -38,6 +38,7 @@ def setup_app(config_path=None):
         exit(1)
     setup_backends(app)
     setup_routes(app)
+
     return app
 
 
