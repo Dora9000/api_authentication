@@ -1,25 +1,45 @@
 from aiohttp import web
 import json
 import os
+from .speech_recognition import predict
+from .voice_identification import create_gmm, predict_voice
 
 
-async def recognize_voice(app, id, file):
+async def recognize_voice(app, id_, file):
     print('recognize_voice - done')
-    if not os.path.exists(app['config']['inventory']['dir'] + '/' + str(id) +
+
+    if not os.path.exists(app['config']['inventory']['dir'] + '/' + str(id_) +
                           '/' + app['config']['inventory']['voiceDirName']):
         return 2
-    return 0
+    features_path = app['config']['inventory']['dir'] + '/' + str(id_) + \
+                    '/' + app['config']['inventory']['voiceDirName'] + '/features'
+    if not os.path.exists(features_path):
+        os.makedirs(features_path)
+    id2 = predict_voice(app, file, features_path)
+    await delete_path(features_path)
+    if id_ == id2:
+        return 0
+    return 1
 
 
-async def recognize_speech(app, id, file):
+async def recognize_speech(app, id_, file):
     print('recognize_speech - done')
-    if not os.path.exists(app['config']['inventory']['dir'] + '/' + str(id) +
+    if not os.path.exists(app['config']['inventory']['dir'] + '/' + str(id_) +
                           '/' + app['config']['inventory']['pswdDirName']):
         return 2
-    return 0
+    answer1 = answer2 = ''
+    answer1 = predict(app, file)
+    with open(app['config']['inventory']['dir'] + '/' + str(id_) +
+              '/' + app['config']['inventory']['pswdDirName'] + '/1.txt', "r") as f:
+        answer2 = f.read()
+    print('recognize_speech -', answer1)
+    if answer1 == answer2:
+        return 0
+    return 1
 
 
-async def train_GMM(app, id):
+async def train_GMM(app, id_):
+    create_gmm(app, app['config']['voiceSystem']['dir'], id_)
     print('train_GMM - done')
     return
 
@@ -105,12 +125,12 @@ async def add_password(request):
         return web.Response(status=400,
                             text=json.dumps({'text': 'user do not exist'}),
                             content_type="application/json")
-    #data = request.query.get('password')
+    # data = request.query.get('password')
     data = await get_data_from_request(request)
     print('add_password - ', data)
     if data and len(data) > 0:
         old_filename = request.app['config']['inventory']['dir'] + '/' + str(id) + \
-                   '/' + request.app['config']['inventory']['pswdDirName']
+                       '/' + request.app['config']['inventory']['pswdDirName']
         await delete_path(old_filename)
         os.mkdir(old_filename)
         with open(old_filename + '/1.txt', 'w+') as f:
@@ -131,18 +151,20 @@ async def check(request):
 
     filename = request.app['config']['inputData']['dinamicDir'] + '/check_{0}.wav'.format(id)
     if await download_file(request, filename):
-        flag1 = await recognize_voice(request.app,id, filename)
+        flag1 = await recognize_voice(request.app, id, filename)
         flag2 = await recognize_speech(request.app, id, filename)
+
         await delete_path(filename)
-        if flag1 == 0 and flag2 == 0:
-            return web.Response(text=json.dumps({'text': 'ok'}), content_type="application/json")
+        if flag1 == 0 or flag1 == 2 and flag2 == 0 or flag2 == 2:
+            text = {'text': 'ok'}
+            if flag1 == 2:
+                text['voice'] = 'not done'
+            if flag2 == 2:
+                text['speech'] = 'not done'
+            return web.Response(text=json.dumps(text), content_type="application/json")
         else:
             text = {'text': 'not allowed'}
             if request.app['config']['app']['test']:
-                if flag1 == 2:
-                    text['voice'] = 'not done'
-                if flag2 == 2:
-                    text['speech'] = 'not done'
                 if flag1 == 1:
                     text['voice'] = 'not allowed'
                 if flag2 == 1:
@@ -162,7 +184,7 @@ async def delete_path(path):
             os.rmdir(path)
             return True
     except Exception as e:
-        #print('delete_path 1 - ', e)
+        # print('delete_path 1 - ', e)
         try:
             os.remove(path)
             return True
@@ -181,8 +203,8 @@ async def delete_user(request):
     else:
         print('user {0} deleted'.format(id))
         return web.Response(status=200,
-                        text=json.dumps({'text': 'ok'}),
-                        content_type="application/json")
+                            text=json.dumps({'text': 'ok'}),
+                            content_type="application/json")
 
 
 async def get_users(app):
@@ -195,12 +217,11 @@ async def get_users(app):
             voice = 'yes'
         if app['config']['inventory']['pswdDirName'] in factors:
             pswd = 'yes'
-        answer.append((i, voice, pswd, 'yes')) # id_, voice, pswd, active)
+        answer.append((i, voice, pswd, 'yes'))  # id_, voice, pswd, active)
     return answer
 
 
 async def info(request):
-    print(request.app['N'])
     users = await get_users(request.app)
     data = []
     for (id_, voice, pswd, active) in users:
@@ -209,7 +230,7 @@ async def info(request):
                      'password_exist': pswd,
                      'active': active})
     return web.Response(status=200,
-                        text=json.dumps(data, ensure_ascii=False),#.encode('utf8'),
+                        text=json.dumps(data, ensure_ascii=False),  # .encode('utf8'),
                         content_type="application/json")
 
 
@@ -217,7 +238,7 @@ async def info_html(request):
     users = await get_users(request.app)
     data = ''
     users = ['<tr><td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td></tr>'.format(id_, voice, pswd, active) for
-                   (id_, voice, pswd, active) in users]
+             (id_, voice, pswd, active) in users]
     for i in users:
         data += i
     print(data)
@@ -225,4 +246,4 @@ async def info_html(request):
    <caption>Пользователи в базе</caption><tr><th>Идентификатор</th><th>Образец голоса</th><th>Наличие пароля</th><th>Активен</th>
    </tr>''' + data + '''</table></body></html>'''
     return web.Response(body=content, status=200, content_type='text/html')
-    #return await get_static('w1.html')
+    # return await get_static('w1.html')

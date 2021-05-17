@@ -2,6 +2,7 @@ import json
 import requests
 import unittest
 import random
+import time
 
 data_path = 'C:/Users/super/PycharmProjects/auth_api/data/test_data/1.wav'
 
@@ -68,15 +69,17 @@ class TestAPI(unittest.TestCase):
         id_ = self.create_user()
         self.add_voice(id_)
         r = requests.post('http://localhost:8080/check/{0}'.format(id_))
-        self.assertEqual(r.status_code, 401)
+        self.assertEqual(r.status_code, 200)
         answer = json.loads(r.text)
-        self.assertEqual(answer['text'], 'not allowed')  # {'text': 'not allowed'} ['speech'] = 'not done'
+        self.assertEqual(answer['text'], 'ok')  # {'text': 'not allowed'} ['speech'] = 'not done'
         self.assertEqual(answer['speech'], 'not done')
+        #self.assertEqual(answer.get('speech'), None)
         self.assertEqual(answer.get('voice'), None)
 
         self.add_speech(id_)
         r = requests.post('http://localhost:8080/check/{0}'.format(id_))
         answer = json.loads(r.text)
+        print(answer)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(answer['text'], 'ok')
         self.assertEqual(answer.get('speech'), None)
@@ -91,11 +94,12 @@ class TestAPI(unittest.TestCase):
         id_ = self.create_user()
         self.add_speech(id_)
         r = requests.post('http://localhost:8080/check/{0}'.format(id_))
-        self.assertEqual(r.status_code, 401)
+        self.assertEqual(r.status_code, 200)
         answer = json.loads(r.text)
-        self.assertEqual(answer['text'], 'not allowed')  # {'text': 'not allowed'} ['speech'] = 'not done'
-        self.assertEqual(answer['voice'], 'not done')
+        self.assertEqual(answer['text'], 'ok')  # {'text': 'not allowed'} ['speech'] = 'not done'
+        #self.assertEqual(answer['voice'], 'not done')
         self.assertEqual(answer.get('speech'), None)
+        self.assertEqual(answer.get('voice'), 'not done')
 
         self.add_voice(id_)
         r = requests.post('http://localhost:8080/check/{0}'.format(id_))
@@ -113,9 +117,9 @@ class TestAPI(unittest.TestCase):
         # user three
         id_ = self.create_user()
         r = requests.post('http://localhost:8080/check/{0}'.format(id_))
-        self.assertEqual(r.status_code, 401)
+        self.assertEqual(r.status_code, 200)
         answer = json.loads(r.text)
-        self.assertEqual(answer['text'], 'not allowed')  # {'text': 'not allowed'} ['speech'] = 'not done'
+        self.assertEqual(answer['text'], 'ok')  # {'text': 'not allowed'} ['speech'] = 'not done'
         self.assertEqual(answer['voice'], 'not done')
         self.assertEqual(answer['speech'], 'not done')
 
@@ -133,7 +137,7 @@ class TestAPI(unittest.TestCase):
         answer = json.loads(r.text)
         self.assertEqual(answer['text'], 'ok')
 
-    def check_info_valid(self):
+    def test_info_valid(self):
         users_list = set()
         for i in range(100):
             users_list.add(self.create_user())
@@ -150,8 +154,12 @@ class TestAPI(unittest.TestCase):
         r = requests.get('http://localhost:8080/info')
         self.assertEqual(r.status_code, 200)
         answer = json.loads(r.text)
-        ####
-        for id_, voice, pswd, active in answer:
+        for one_answer in answer:
+            id_ = int(one_answer['id'])
+            voice = one_answer['voice_exist']
+            pswd = one_answer['password_exist']
+            active = one_answer['active']
+
             self.assertTrue(id_ in users_list)
             self.assertEqual(active, 'yes')
             if id_ in users_list_speech:
@@ -170,10 +178,13 @@ class TestAPI(unittest.TestCase):
             self.assertEqual(answer['text'], 'ok')
 
     def add_voice(self, id_):
+
         with open(data_path, 'rb') as f:
             data = f
             headers = {'content-type': 'audio/wav'}
+            start = time.time()
             r = requests.post('http://localhost:8080/add_voice/{0}'.format(id_), data=data, headers=headers)
+            print(time.time() - start)
         self.assertEqual(r.status_code, 200)
         answer = json.loads(r.text)
         self.assertEqual(answer['text'], 'ok')

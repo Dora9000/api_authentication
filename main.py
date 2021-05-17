@@ -67,8 +67,8 @@ if __name__ == "__main__":
     try:
         loop = asyncio.get_event_loop()
         app = setup_app(config_path=ARGS.config)
-        #loop.add_signal_handler(signal.SIGHUP, lambda: asyncio.create_task(
-        #    reload_config(app=app, config_path=ARGS.config)))
+        loop.add_signal_handler(signal.SIGHUP, lambda: asyncio.create_task(
+            reload_config(app=app, config_path=ARGS.config)))
         web.run_app(app=app,
                     path=ARGS.path,
                     port=ARGS.port)

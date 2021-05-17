@@ -1,5 +1,5 @@
 from aiohttp import web
-from functions.handler import create_user, add_voice, add_password, check, info, delete_user
+from functions.handler import create_user, add_voice, add_password, check, info, delete_user, info_html
 
 
 def setup_routes(app):
@@ -28,9 +28,12 @@ def setup_routes(app):
                          check,
                          name='check')
 
-
-
     app.router.add_route('GET',
                          '/info',
                          info,
                          name='info')
+
+    app.router.add_route('GET',
+                         '/info_html',
+                         info_html,
+                         name='info_html')
